@@ -27,6 +27,9 @@ spec:
       sds:
         token:
           aud: "PROJECT_ID.svc.id.goog" # {"type":"string","x-kustomize":{"partialSetters":[{"name":"gcloud.core.project","value":"PROJECT_ID"}]}}
+      proxy:
+        env:
+          GCP_METADATA: "PROJECT_ID,PROJECT_NUMBER,asm-cluster,us-central1-c" # {"type":"string","x-kustomize":{"partialSetters":[{"name":"gcloud.core.project","value":"PROJECT_ID"},{"name":"gcloud.core.projectNumber","value":"PROJECT_NUMBER"},{"name":"cluster-name","value":"asm-cluster"},{"name":"gcloud.compute.zone","value":"us-central1-c"}]}}          
     nodeagent:
       env:
         GKE_CLUSTER_URL: "https://container.googleapis.com/v1/projects/PROJECT_ID/locations/us-central1-c/clusters/asm-cluster" # {"type":"string","x-kustomize":{"partialSetters":[{"name":"gcloud.core.project","value":"PROJECT_ID"},{"name":"cluster-name","value":"asm-cluster"},{"name":"gcloud.compute.zone","value":"us-central1-c"}]}}
