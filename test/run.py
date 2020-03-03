@@ -9,7 +9,7 @@ import nbconvert
 
 import sys
 
-src = "/jupyter/smoketest.ipynb"
+src = "/jupyter/git-test.ipynb"
 destdir = "/workspace/artifacts"
 
 timeout = 3600
