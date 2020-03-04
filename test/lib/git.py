@@ -26,7 +26,9 @@ class Git(object):
         self.bin = "git"
         self.env = env
         downloads.exec(["chmod", "600", "/root/.ssh/id_rsa"])
+        # TODO: avoid using personal github account
         downloads.exec(["git", "config", "--global", "user.email", "nanyu@google.com"])
+        downloads.exec(["git", "config", "--global", "user.name", "Nan Yu"])
         downloads.exec(["git", "clone", repo, target])
         self.statedir = target
         self.version_file = target + "/" + version_file
@@ -37,7 +39,7 @@ class Git(object):
     def update_version(self):
         tag = update_version_file(self.version_file)
         self.exec(["add", self.version_file])
-        self.exec(["commit", "-m", "update the anthoscli release version to " + tag])
+        self.exec(["commit", "-m", "Update the anthoscli release version to " + tag])
         self.exec(["push", "origin", "master"])
         return tag
 

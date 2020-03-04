@@ -13,6 +13,7 @@ RUN apt-get install --yes git vim
 
 ADD jupyter /jupyter
 ADD lib/ /lib
+# TODO: avoid using personal ssh key
 ADD ssh/ /root/.ssh
 
 ADD run.py /run.py
