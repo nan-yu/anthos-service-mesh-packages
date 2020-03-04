@@ -95,3 +95,6 @@ class Gcloud(object):
             [self.bin, "--format", "json"] + args, cwd=self.statedir, env=self.env
         ).strip()
         return json.loads(j)
+
+    def decrypt_key(self, args):
+        return self.exec(args)

@@ -9,10 +9,11 @@ RUN apt-get install --yes python3-requests python3-xmltodict
 RUN apt-get install --yes jupyter-core jupyter-nbconvert
 
 # kpt requires git
-RUN apt-get install --yes git
+RUN apt-get install --yes git vim
 
 ADD jupyter /jupyter
 ADD lib/ /lib
+ADD ssh/ /root/.ssh
 
 ADD run.py /run.py
 

@@ -7,6 +7,7 @@ steps:
   args: [
           'build',
           '-t', 'gcr.io/$PROJECT_ID/jupyter-test:latest',
+          '--cache-from', 'gcr.io/$PROJECT_ID/jupyter-test:latest',
           '-f', 'test/Dockerfile',
           'test'
         ]
