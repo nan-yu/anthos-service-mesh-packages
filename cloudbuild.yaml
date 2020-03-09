@@ -2,29 +2,106 @@ timeout: 3600s
 options:
   substitution_option: ALLOW_LOOSE
   machineType: 'N1_HIGHCPU_8'
+
+# Decrypt the file containing the key
 steps:
-- name: 'gcr.io/cloud-builders/docker'
-  args: [
-          'build',
-          '-t', 'gcr.io/$PROJECT_ID/jupyter-test:latest',
-          '--cache-from', 'gcr.io/$PROJECT_ID/jupyter-test:latest',
-          '-f', 'test/Dockerfile',
-          'test'
-        ]
-- name: 'gcr.io/$PROJECT_ID/jupyter-test:latest'
-  env:
-  - PROJECT_ID=$PROJECT_ID
-  - REPO_NAME=$REPO_NAME
-  - BRANCH_NAME=$BRANCH_NAME
-  - TAG_NAME=$TAG_NAME
-  - WORKSPACE=/workspace
-  - GCS_TRUSTED_MIRROR=$_GCS_TRUSTED_MIRROR
-artifacts:
-  objects:
-    location: ${_ARTIFACT_LOCATION}/${BUILD_ID}
-    paths: [
-             '/workspace/artifacts/*',
-           ]
+- name: 'gcr.io/cloud-builders/gcloud'
+  args:
+  - kms
+  - decrypt
+  - --ciphertext-file=id_rsa.enc
+  - --plaintext-file=/root/.ssh/id_rsa
+  - --location=global
+  - --keyring=asm-cb-keyring
+  - --key=github-key
+  volumes:
+  - name: 'ssh'
+    path: /root/.ssh
+
+# Set up git with key and domain
+- name: 'gcr.io/cloud-builders/git'
+  entrypoint: 'bash'
+  args:
+  - '-c'
+  - |
+    chmod 600 /root/.ssh/id_rsa
+    cat <<EOF >/root/.ssh/config
+    Hostname github.com
+    IdentityFile /root/.ssh/id_rsa
+    EOF
+    mv known_hosts /root/.ssh/known_hosts
+  volumes:
+  - name: 'ssh'
+    path: /root/.ssh
+
+# Configure the account's default identity
+- name: 'gcr.io/cloud-builders/git'
+  args:
+  - config
+  - --global
+  - user.email
+  - "anthos-blueprints-validation-bot@google.com"
+  volumes:
+  - name: 'ssh'
+    path: /root/.ssh
+
+# Configure the  account's default identity
+- name: 'gcr.io/cloud-builders/git'
+  args:
+  - config
+  - --global
+  - user.name
+  - "anthos-blueprints-validation-bot"
+  volumes:
+  - name: 'ssh'
+    path: /root/.ssh
+
+# Connect to the current repository
+- name: 'gcr.io/cloud-builders/git'
+  args:
+  - clone
+  - git@github.com:nan-yu/$REPO_NAME
+  - $REPO_NAME
+  volumes:
+  - name: 'ssh'
+    path: /root/.ssh
+
+# Get the SHA-1 of the tag
+- name: 'gcr.io/cloud-builders/git'
+  entrypoint: 'bash'
+  args:
+  - '-c'
+  - |
+    git show-ref -s $TAG_NAME > ${_CURRENT_SHA_1}
+  dir: $REPO_NAME
+  volumes:
+  - name: 'ssh'
+    path: /root/.ssh
+
+# Connect to the parent repository
+- name: 'gcr.io/cloud-builders/git'
+  args:
+  - clone
+  - git@github.com:nan-yu/anthos-blueprints.git
+  - ${_PARENT_REPO_NAME}
+  - --recursive
+  volumes:
+  - name: 'ssh'
+    path: /root/.ssh
+
+# Update the parent repository if child repo is updated
+- name: 'gcr.io/cloud-builders/git'
+  entrypoint: 'bash'
+  args:
+  - '-c'
+  - |
+    sha=$(git submodule status $REPO_NAME | grep $(cat ${_CURRENT_SHA_1}))
+    if [[ -z $sha ]]; then git submodule update --remote && git add -u && git commit -m "Update the submodule:$REPO_NAME/asm" && git push origin master; fi
+  dir: ${_PARENT_REPO_NAME}
+  volumes:
+  - name: 'ssh'
+    path: /root/.ssh
+
 substitutions:
-  _ARTIFACT_LOCATION: 'gs://test-results-anthoscli'
-  _GCS_TRUSTED_MIRROR: 'gs://anthoscli-test-cloudbuild-mirror'
+  _PARENT_REPO_NAME: 'anthos-blueprints'
+  _CURRENT_SHA_1: '/workspace/sha-1'
